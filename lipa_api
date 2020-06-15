@@ -1,0 +1,71 @@
+<?php
+//Generate Access Token
+    $consumerKey = '** paste your consumer key here **'; 
+    $consumerSecret = '** paste your consumer secret here **';
+    
+    $headers = ['Content-Type:application/json; charset=utf8'];
+    
+    $url = 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials';
+    
+    $curl = curl_init($url);
+    curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, TRUE);
+    curl_setopt($curl, CURLOPT_HEADER, FALSE);
+    curl_setopt($curl, CURLOPT_USERPWD, $consumerKey.':'.$consumerSecret);
+    
+    $curl_response = curl_exec($curl);
+    $status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    $result = json_decode($curl_response, true);
+    
+    $access_token = $result['access_token']; //fetches the access token to be used to initialize the transaction
+    //echo "Token:", $access_token; //Comment this out for testing purposes; if need be, you want to see the token
+    
+    curl_close($curl);
+  
+//Initiate the Transaction
+   $initiate_url = 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest';
+  
+  //variables
+   $BusinessShortCode = '** paste your shortcode from test credentials here **';
+   //date_default_timezone_set('Africa/Nairobi'); /*if your server returns an invalid timestamp error, comment out this*/
+   $Timestamp = date('YmdGis');
+   $partyA = '** paste the phone number you want to send the request to **';
+   $Amount = '** paste amount you want to transact **';
+   $callBackURL = 'https://** can be ip address of server or url to your callback file **';
+   $AccountReference = ' **eg. CR349**'; //Reference to account purchase
+   $TransactionDesc = ''; //Transaction Description 
+   $Passkey = ' ** paste pass key from test credentials **';
+  
+  $Password = base64_encode($BusinessShortCode.$Passkey.$Timestamp);
+  
+  $curl = curl_init();
+  curl_setopt($curl, CURLOPT_URL, $initiate_url);
+  curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type:application/json','Authorization:Bearer '.$access_token)); //setting custom header
+  
+    $curl_post_data = array(
+    //Fill in the request parameters with valid values
+    'BusinessShortCode' => $BusinessShortCode,
+    'Password' => $Password,
+    'Timestamp' => $Timestamp,
+    'TransactionType' => 'CustomerPayBillOnline',
+    'Amount' => $Amount,
+    'PartyA' => $partyA,
+    'PartyB' => $BusinessShortCode,
+    'PhoneNumber' => $partyA,
+    'CallBackURL' => $callBackURL,
+    'AccountReference' => $AccountReference,
+    'TransactionDesc' => $TransactionDesc
+  );
+  
+  $data_string = json_encode($curl_post_data);
+  
+  curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($curl, CURLOPT_POST, true);
+  curl_setopt($curl, CURLOPT_POSTFIELDS, $data_string);
+  
+  $curl_response = curl_exec($curl);
+  print_r($curl_response);
+  
+  //echo $curl_response;
+
+?>
